@@ -31,21 +31,46 @@ aggregates.
 
 ## Install
 
-Mount the web service and this provider. The provider registers under the id
-`searxng`, which must be **pinned** if another search provider is also present —
-the seam rejects an ambiguous multi-provider setup rather than picking one.
+```sh
+dsh plugin --profile <profile> add github:zzy-fxxxexxxyxxx/dsh-web-search-searxng
+```
+
+Installing the package is only half of it: the Loader mounts nothing until the
+profile's patch inserts the row. Append this to
+`$DSH_HOME/profiles/<profile>/cordis.patch.yml`:
 
 ```yaml
-- id: web
-  config:
-    searchProvider: searxng
-
 - insert:
     - id: dsh-web-search-searxng
       name: dsh-web-search-searxng
       config:
         baseURL: http://127.0.0.1:8888
 ```
+
+Then point the web seam at it. The shipped base layer already pins
+`deepseek-official`, so without this override search keeps using DeepSeek:
+
+```yaml
+- id: web
+  name: '@deepseek-ai/dsh-web'
+  config:
+    searchProvider: searxng
+    fetchProvider: http
+```
+
+A patch replaces the targeted row's **whole** `config`, which is why
+`fetchProvider` is restated above — omitting it would leave URL fetching
+unconfigured.
+
+Restart the service to apply. Installing and pinning in one restart is worth
+doing: each restart interrupts any in-flight session.
+
+### Provider selection
+
+The seam refuses to guess. With no `searchProvider` pinned and more than one
+usable search provider registered, every search fails with
+`WEB_PROVIDER_AMBIGUOUS` rather than picking one silently. Pin `searxng`
+explicitly, or remove the other provider.
 
 `baseURL` defaults to `http://127.0.0.1:8888`, SearXNG's default listener.
 
