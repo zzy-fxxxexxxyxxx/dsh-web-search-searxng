@@ -34,6 +34,17 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
+      # The suite imports lib/index.js, which imports @deepseek-ai/schemastery,
+      # and lib/provider.js imports @deepseek-ai/dsh-web — so the dependencies
+      # and the declared peers must both be installed before tests can run.
+      # All of them are published to the public registry.
+      #
+      # --no-save keeps this from touching package.json, and peer resolution is
+      # left to npm: the peers are real published versions, so no override is
+      # needed.
+      - name: Install dependencies
+        run: npm install --no-save --no-audit --no-fund
+
       # The suite stubs fetch, so no network or SearXNG instance is required.
       - name: Test
         run: node test/provider.test.cjs
