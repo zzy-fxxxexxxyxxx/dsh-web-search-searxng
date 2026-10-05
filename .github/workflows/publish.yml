@@ -1,0 +1,57 @@
+name: Publish to npm
+
+# Publishes this package to npm using OIDC trusted publishing.
+#
+# There is NO NPM_TOKEN anywhere in this workflow, and none is needed: npm
+# verifies the GitHub-issued OIDC identity against the trusted publisher
+# configured for this package on npmjs.com. That configuration must name this
+# exact repository and this exact workflow filename, so renaming either one
+# breaks publishing until the npm-side setting is updated to match.
+#
+# Ordering note: the trusted publisher can only be configured AFTER the package
+# exists on npm, so the first release was published manually. Every release
+# after this one goes through this workflow.
+
+on:
+  release:
+    types: [published]
+  # Lets you re-run a publish from the Actions tab without cutting a new release.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # Required to request the OIDC token that npm exchanges for publish rights.
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      # The suite stubs fetch, so no network or SearXNG instance is required.
+      - name: Test
+        run: node test/provider.test.cjs
+
+      # guard: a release tag that disagrees with package.json would publish the
+      # wrong version, or silently fail with a 403 on a version that already
+      # exists. Fail loudly before that happens.
+      - name: Verify tag matches package.json
+        if: github.event_name == 'release'
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::release tag '$GITHUB_REF_NAME' does not match package.json version '$pkg'"
+            exit 1
+          fi
+          echo "tag $GITHUB_REF_NAME matches package.json version $pkg"
+
+      # No NODE_AUTH_TOKEN on purpose — OIDC supplies the credential.
+      - name: Publish
+        run: npm publish
