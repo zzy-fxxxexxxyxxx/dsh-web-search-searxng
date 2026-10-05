@@ -1,4 +1,4 @@
-# dsh-web-search-searxng
+# @zzy-fxxxexxxyxxx/dsh-web-search-searxng
 
 English | [中文](README.zh.md)
 
@@ -31,18 +31,39 @@ aggregates.
 
 ## Install
 
+### From npm (recommended)
+
+```sh
+dsh plugin --profile <profile> add @zzy-fxxxexxxyxxx/dsh-web-search-searxng
+```
+
+### From GitHub
+
 ```sh
 dsh plugin --profile <profile> add github:zzy-fxxxexxxyxxx/dsh-web-search-searxng
 ```
 
-Installing the package is only half of it: the Loader mounts nothing until the
-profile's patch inserts the row. Append this to
+Either form installs the package **and** applies the bundle's own
+`cordis.patch.yml`, which registers the provider and pins it as the active search
+backend. **No manual patch editing is required.**
+
+> If your `dsh` version does not apply the bundle patch automatically, see
+> [Manual patch](#manual-patch-fallback) below.
+
+Then restart the service to apply. Installing and pinning in one restart is worth
+doing: each restart interrupts any in-flight session.
+
+### Manual patch (fallback)
+
+If the bundle patch was not applied — for example on an older `dsh`, or when the
+dependency landed in `dependencies` without being added to
+`dsh.profile.bundles` — append this to
 `$DSH_HOME/profiles/<profile>/cordis.patch.yml`:
 
 ```yaml
 - insert:
-    - id: dsh-web-search-searxng
-      name: dsh-web-search-searxng
+    - id: web-search-searxng
+      name: '@zzy-fxxxexxxyxxx/dsh-web-search-searxng'
       config:
         baseURL: http://127.0.0.1:8888
 ```
@@ -61,9 +82,6 @@ Then point the web seam at it. The shipped base layer already pins
 A patch replaces the targeted row's **whole** `config`, which is why
 `fetchProvider` is restated above — omitting it would leave URL fetching
 unconfigured.
-
-Restart the service to apply. Installing and pinning in one restart is worth
-doing: each restart interrupts any in-flight session.
 
 ### Provider selection
 
@@ -110,11 +128,13 @@ never exceeds it.
 | `url` | `url` | Required; entries without one are dropped. |
 | `title` | `title` | Omitted when blank. |
 | `content` | `snippet` | Omitted when blank. |
-| `pubdate` / `publishedDate` | `publishedAt` | **Converted** — see below. |
+| `pubdate` / `publishedDate` | `publishedAt` | Normalised to ISO-8601 when needed. |
 
-SearXNG emits `pubdate` as `"YYYY-MM-DD HH:MM:SS"`, which is local time with no
-zone offset. The seam documents `publishedAt` as ISO-8601, so the provider
-converts the value instead of passing it through. Values it cannot interpret are
+A source's `publishedAt` must be an ISO-8601 string per the seam contract. Recent
+SearXNG builds already emit ISO-8601 (`2026-04-25T14:58:18`, sometimes with an
+offset or fractional seconds), which passes through unchanged. Older or
+engine-specific values that arrive space-separated (`"YYYY-MM-DD HH:MM:SS"`, local
+time with no zone) are parsed and converted; values that cannot be interpreted are
 dropped rather than invented.
 
 Results are de-duplicated by URL, because SearXNG merges the same page from
@@ -130,6 +150,8 @@ several engines.
   takes one to three seconds, longer than a single-engine lookup.
 - **No fetch provider.** This package implements search only. URL retrieval still
   needs a fetch backend such as `@deepseek-ai/dsh-web-fetch-http`.
+- **Upstream engines get rate-limited.** A self-hosted instance commonly sees
+  CAPTCHAs and HTTP 429 from large engines; result quality is bounded by that.
 
 ## Test
 

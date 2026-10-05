@@ -1,5 +1,5 @@
 {
-  "name": "dsh-web-search-searxng",
+  "name": "@zzy-fxxxexxxyxxx/dsh-web-search-searxng",
   "description": "SearXNG-backed search provider for the DeepSeek Harness web capability seam (ctx.web)",
   "version": "0.1.0",
   "type": "module",
@@ -15,7 +15,9 @@
     "lib/index.js",
     "lib/provider.js",
     "lib/types/**/*.d.ts",
+    "cordis.patch.yml",
     "README.md",
+    "README.zh.md",
     "LICENSE"
   ],
   "license": "MIT",
@@ -40,5 +42,20 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zzy-fxxxexxxyxxx/dsh-web-search-searxng.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zzy-fxxxexxxyxxx/dsh-web-search-searxng/issues"
+  },
+  "homepage": "https://github.com/zzy-fxxxexxxyxxx/dsh-web-search-searxng#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
